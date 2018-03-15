@@ -81,7 +81,8 @@ def res_5(d):
         "code": 0,
         "isRight": True,
         "win": True,
-        "value": d["value"]
+        "value": d["value"],
+        "rivalCards": [2,3,4]
     } if rd.randint(0, 10) < 5 else {
         "code": 3
     }
