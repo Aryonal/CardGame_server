@@ -1,15 +1,12 @@
 # -*-coding:utf-8-*-
 
 '''
-for const
+for consts and rules
 '''
 
-INIT_VALUE = {
-    "magic": 0,
-    "score": 0
-}
-
-INIT_CARDS = {
-    "pool": [],
-    "board": []
-}
+'''
+Judge which player win the game and adjust each player's values
+player: arena.models.User
+'''
+def JUDGE(player1, player2):
+    pass

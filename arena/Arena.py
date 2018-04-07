@@ -3,7 +3,7 @@ import multiprocessing as mp
 import room
 from models import *
 import random as rd
-import time
+import time, threading
 
 class Arena(object):
 
@@ -12,9 +12,9 @@ class Arena(object):
     '''
     def __init__(self, vol):
         self._rooms_map = {} # {id:(process, pipe)}
-        self._rest_ids = list(xrange(100))
+        self._rest_ids = list(map(lambda n: 'r'+str(n), range(100)))
         self._waiting_rooms = [] #[(room_id:user_id)]
-        self.Results = []
+        self._threads = []
 
 
     '''
@@ -37,14 +37,14 @@ class Arena(object):
                 "userId": user_id
             }
         })
-        print "Arena/Arena._join_room: 房间 "+ str(room_id) + "接客啦！" + str(user_id) + "里边请～"
+        print("[Arena/Arena._join_room]: 房间 "+ str(room_id) + "接客啦！" + str(user_id) + "里边请～")
         self._rooms_map[room_id][1].send(msg)
 
     '''
     room_id: int: room id
     '''
     def _new_room(self, room_id, user_id):
-        print "Arena/Arena._newroom: 为客人新开一间房间 " + str(room_id)
+        print("[Arena/Arena._newroom]: 为客人新开一间房间 " + str(room_id))
         p,c = mp.Pipe()
         rm = mp.Process(target=room.room_work, args=[room_id, user_id, c])
         rm.start()
@@ -57,7 +57,7 @@ class Arena(object):
     def _match_rival(self, user_id):
         #TODO: better match
         room_id, rival_id = self._waiting_rooms.pop(0)
-        print "Arena/Arena._match_rival: 客人请进入房间 " + str(room_id) + "，对手是 " + str(rival_id)
+        print("[Arena/Arena._match_rival]: 客人请进入房间 " + str(room_id) + "，对手是 " + str(rival_id))
         return room_id
 
     '''
@@ -66,11 +66,11 @@ class Arena(object):
     return room id
     '''
     def new_guest(self, user_id):
-        print "Arena/Arena.new_guest: 有客人来啦！" + str(user_id)
+        print("[Arena/Arena.new_guest]: 有客人来啦！" + str(user_id))
         if len(self._waiting_rooms) == 0:
             room_id = self._new_room_id()
             self._new_room(room_id, user_id)
-            self._waiting_rooms.append(room_id)
+            self._waiting_rooms.append((room_id, user_id))
             return room_id
 
         room_id = self._match_rival(user_id)
@@ -81,47 +81,59 @@ class Arena(object):
     called when game is ended
     '''
     def close_room(self, room_id):
-        print "Arena/Arena.close_room: 关闭房间 " + str(room_id)
+        print("[Arena/Arena.close_room]: 关闭房间 " + str(room_id))
+        msg = Msg(room_id, 'arena', {
+            "cmd": "close_room"
+        })
         room,p = self._rooms_map[room_id]
+        p.send(msg)
         p.close()
-        p.join()
+        room.join()
         del self._rooms_map[room_id]
         self._rest_ids.append(room_id)
 
     def close(self):
-        print "Arena/Arena.close: 打烊啦！各回各家"
-        self._messages.join_thread()
-        for id,pk in self._process_map.items():
+        print("[Arena/Arena.close]: 打烊啦！各回各家")
+
+        for id,pk in self._rooms_map.items():
+            msg = Msg(id, 'arena', {
+                    "cmd": "close_room"
+                })
+            pk[1].send(msg)
             pk[1].close()
             pk[0].join()
+        for t in self._threads:
+            t.join()
 
     '''
     room_id: int: room id
     data: dict: request.json()
     '''
     def send_msg(self, room_id, data, cb=lambda data: 0):
-        print "Arena/Arena.send_msg: 下面播送一条通知：" + str(room_id) + "房间请注意, " + data.src + "对你说："
-        print str(data)
+        print("[Arena/Arena.send_msg]: 下面播送一条通知：" + str(room_id) + "房间请注意, " + data.src + "对你说：" + str(data))
         p = self._rooms_map[room_id][1] # pipe with room id
         p.send(Msg(room_id, 'client', data))
-        while True:
-            if p.poll():
-                msg = p.recv()
-                if not msg.id == room_id:
-                    raise MisMatchRoomIdError()
-                if msg.src == 'client':
-                    data = msg.data
-                    cb(data)
-                else:
-                    pass
+        try:
+            t = threading.Thread(target=_postprocessing_msg, args=(p, room_id, cb))
+            self._threads.append(t)
+            t.start()
+        except:
+            raise
+
+'''
+postprocessing msg function
+'''
+def _postprocessing_msg(p, room_id, cb):
+    while True:
+        if p.poll():
+            msg = p.recv()
+            if not msg.id == room_id:
+                raise MisMatchRoomIdError()
+            if msg.src == 'client':
+                data = msg.data
+                cb(data)
             else:
-                time.sleep(rd.random()/1.0)
-                continue
-            # msg = self._results.get()
-            # if not msg.id == room_id and msg.src == 'client':
-            #     self._results.put(msg)
-            #     time.sleep(rd.random()/1.0)
-            #     continue
-            # print "房间" + str(room_id) + "回信说："
-            # print str(msg.data)
-            # return msg.data
+                pass
+        else:
+            time.sleep(rd.random()/1.0)
+            continue
