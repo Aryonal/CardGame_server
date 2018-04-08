@@ -1,4 +1,4 @@
-from db import card
+from db import cd
 
 '''
 find card profile by id

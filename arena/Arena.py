@@ -11,7 +11,7 @@ class Arena(object):
     vol: volume of this arena
     '''
     def __init__(self, vol):
-        self._rooms_map = {} # {id:(process, pipe)}
+        self._rooms_map = {} # {room_id:(process, pipe)}
         self._rest_ids = list(map(lambda n: 'r'+str(n), range(100)))
         self._waiting_rooms = [] #[(room_id:user_id)]
         self._threads = []
@@ -41,7 +41,7 @@ class Arena(object):
         self._rooms_map[room_id][1].send(msg)
 
     '''
-    room_id: int: room id
+    {room_id}: int: room id
     '''
     def _new_room(self, room_id, user_id):
         print("[Arena/Arena._newroom]: 为客人新开一间房间 " + str(room_id))
@@ -51,7 +51,7 @@ class Arena(object):
         self._rooms_map[room_id] = (rm, p)
 
     '''
-    user_id: int: user id
+    {user_id}: int: user id
     match proper rival for user id, return room id
     '''
     def _match_rival(self, user_id):
@@ -62,7 +62,7 @@ class Arena(object):
 
     '''
     new guest, called when a new user request for a new room
-    user_id: int: user id
+    {user_id}: int: user id
     return room id
     '''
     def new_guest(self, user_id):

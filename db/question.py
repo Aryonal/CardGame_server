@@ -9,7 +9,7 @@ rtype: dict: {
     'answer': 0
 }
 '''
-def pop_random_question(difficulty):
+def pop_random_question(difficulty=0):
     pass
 
 

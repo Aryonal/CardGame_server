@@ -149,18 +149,14 @@ Server Event **"Ready"** json =
 {}
 ```
 
-#### 2. Client Event "Question"
+#### 2. Client Broadcast Event "Question"
 
 json =
 ```json
 {
     "data": {
-        "magic": 0,
-        "score": 0,
-        "question": {
             "question": "What's the weather today?",
             "options": ["Fine.", "Good."]
-        }
     }
 }
 ```
@@ -170,7 +166,6 @@ json =
 Server Event **"Answer"**, json =
 ```json
 {
-    "userId": "u123",
     "data": {
         "magic": 0,
         "score": 0,
@@ -180,6 +175,8 @@ Server Event **"Answer"**, json =
     }
 }
 ```
+
+### 3. Client Broadcast Event ""
 
 
 
@@ -208,9 +205,9 @@ Server Event **"Answer"**, json =
 Entire
 ```python
 {
-    "id": "room_id",
-    "src": "arena",
-    "data": {
+    self.id = "room_id",
+    self.src = "arena",
+    self.data = {
         "cmd": "cmd",
         "data": {
         }
@@ -223,13 +220,40 @@ Entire
 To Room
 ```python
 {
-    "cmd": "add guest",
+    "cmd": "add_guest",
     "data": {
         "userId": "u123"
     }
 }
 ```
 Room 回信时也要 msg.src 设置成发信方，比如 new guest 成功后的反馈， msg.src == 'arena'
+
+### guest leave
+
+To Room
+
+```python
+{
+    "cmd": "guest_leave",
+    "data": {
+        "userId": "u123"
+    }
+}
+```
+
+
+
+### question
+
+To Room
+
+```python
+{
+    "cmd": "question"
+}
+```
+
+Return data = question dict.
 
 ### close room
 

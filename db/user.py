@@ -1,4 +1,4 @@
-from db import user
+from db import ur
 
 '''
 find user profile by id
